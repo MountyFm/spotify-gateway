@@ -41,6 +41,36 @@ trait RestClient extends Serializers with MountyEndpoint {
       ).flatMap(httpResponse => handleResponse(p, httpResponse))
   }
 
+  def makePutRequest[T: Manifest](uri: String,
+                                  headers: List[HttpHeader],
+                                  body: String)
+                                 (implicit system: ActorSystem,
+                                  ec: ExecutionContext,
+                                  mat: Materializer): Future[T] = {
+    val p = Promise[T]
+
+    val entity = if(!body.isEmpty) {
+      HttpEntity(
+        ContentType(MediaTypes.`application/json`),
+        body
+      )
+    } else {
+      HttpEntity.Empty
+    }
+
+    Http()
+      .singleRequest(
+        request = HttpRequest(
+          uri = uri,
+          method = HttpMethods.PUT,
+          headers = headers,
+          entity = entity,
+          protocol = HttpProtocols.`HTTP/1.1`
+        ),
+        getNoCertificateCheckContext
+      ).flatMap(httpResponse => handleResponse(p, httpResponse))
+  }
+
   def makeGetRequest[T: Manifest](uri: String,
                                   headers: List[HttpHeader])
                                  (implicit system: ActorSystem,

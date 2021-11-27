@@ -3,8 +3,8 @@ package kz.mounty.spotify.gateway.services
 import akka.actor.{ActorSystem, Props}
 import akka.util.Timeout
 import com.typesafe.config.Config
-import kz.mounty.fm.domain.spotify.gateway.requests.GetPlayListTracksResponseBody
-import kz.mounty.spotify.gateway.services.SpotifyPlayerService.{Pause, Play}
+import kz.mounty.fm.domain.spotify.gateway.requests.{ChangePlayerStateResponseBody, GetPlayListTracksResponseBody}
+import kz.mounty.spotify.gateway.services.SpotifyPlayerService.{Next, Pause, Play, Prev}
 import kz.mounty.spotify.gateway.utils.{LoggerActor, RestClient}
 
 import scala.concurrent.ExecutionContext
@@ -32,9 +32,11 @@ class SpotifyPlayerService(implicit timeout: Timeout,
     case command: Play =>
       val url = config.getString("spotify-api-endpoints.player").replace("@@player_command@@", "play")
       val senderRef = sender()
-      makeGetRequest[GetPlayListTracksResponseBody](
+      makePutRequest[ChangePlayerStateResponseBody](
         uri = url,
-        headers = getAuthorizationHeaders(command.accessToken))
+        headers = getAuthorizationHeaders(command.accessToken),
+        body = null
+      )
         .map { response =>
           senderRef ! response
         } recover {
@@ -42,23 +44,41 @@ class SpotifyPlayerService(implicit timeout: Timeout,
           senderRef ! e
       }
     case command: Pause =>
-      val url = config.getString("spotify-api-endpoints.player").replace("@@player_command@@", "play")
+      val url = config.getString("spotify-api-endpoints.player").replace("@@player_command@@", "pause")
       val senderRef = sender()
-      makeGetRequest[GetPlayListTracksResponseBody](
+      makePutRequest[ChangePlayerStateResponseBody](
         uri = url,
-        headers = getAuthorizationHeaders(command.accessToken))
+        headers = getAuthorizationHeaders(command.accessToken),
+        body = null
+      )
         .map { response =>
           senderRef ! response
         } recover {
         case e: Throwable =>
           senderRef ! e
       }
-    case command: Play =>
-      val url = config.getString("spotify-api-endpoints.player").replace("@@player_command@@", "play")
+    case command: Next =>
+      val url = config.getString("spotify-api-endpoints.player").replace("@@player_command@@", "next")
       val senderRef = sender()
-      makeGetRequest[GetPlayListTracksResponseBody](
+      makePutRequest[ChangePlayerStateResponseBody](
         uri = url,
-        headers = getAuthorizationHeaders(command.accessToken))
+        headers = getAuthorizationHeaders(command.accessToken),
+        body = null
+      )
+        .map { response =>
+          senderRef ! response
+        } recover {
+        case e: Throwable =>
+          senderRef ! e
+      }
+    case command: Prev =>
+      val url = config.getString("spotify-api-endpoints.player").replace("@@player_command@@", "prev")
+      val senderRef = sender()
+      makePutRequest[ChangePlayerStateResponseBody](
+        uri = url,
+        headers = getAuthorizationHeaders(command.accessToken),
+        body = null
+      )
         .map { response =>
           senderRef ! response
         } recover {
