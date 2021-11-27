@@ -1,11 +1,12 @@
 package kz.mounty.spotify.gateway
 
-import Boot.{config, system}
-import akka.actor.ActorSystem
+import Boot.{channel, config, system}
+import actors.{AmqpListenerActor, AmqpPublisherActor}
+import akka.actor.{ActorRef, ActorSystem}
 import akka.stream.Materializer
 import akka.util.Timeout
 import com.typesafe.config.{Config, ConfigFactory}
-import kz.mounty.fm.amqp.RabbitMQConnection
+import kz.mounty.fm.amqp.{AmqpConsumer, RabbitMQConnection}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, SECONDS}
@@ -50,4 +51,9 @@ object Boot extends App {
     "X:mounty-spotify-gateway-in",
     "mounty-messages.spotify-gateway.#"
   )
+
+  implicit val publisher: ActorRef = system.actorOf(AmqpPublisherActor.props(channel, "X:mounty-api-out"))
+
+  val listener: ActorRef = system.actorOf(AmqpListenerActor.props())
+  channel.basicConsume("Q:mounty-user-profile-core-queue", AmqpConsumer(listener))
 }
