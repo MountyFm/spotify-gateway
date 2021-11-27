@@ -3,9 +3,10 @@ package kz.mounty.spotify.gateway.services
 import akka.actor.{ActorSystem, Props}
 import akka.util.Timeout
 import com.typesafe.config.Config
-import kz.mounty.fm.domain.spotify.gateway.requests.ChangePlayerStateResponseBody
-import kz.mounty.spotify.gateway.services.SpotifyPlayerService.{Next, Pause, Play, PlayerCommand, Prev}
-import kz.mounty.spotify.gateway.utils.{LoggerActor, RestClient}
+import kz.mounty.fm.domain.commands.ChangePlayerStateResponseBody
+import kz.mounty.spotify.gateway.services.SpotifyPlayerService._
+import kz.mounty.spotify.gateway.utils.{LocalSerializer, LoggerActor, RestClient, SpotifyUrlGetter}
+import org.json4s.jackson.Serialization.write
 
 import scala.concurrent.ExecutionContext
 
@@ -15,31 +16,40 @@ object SpotifyPlayerService {
             system: ActorSystem,
             executionContext: ExecutionContext): Props = Props(new SpotifyPlayerService)
 
-  trait PlayerCommand {
+  sealed trait PlayerCommand extends ServiceCommand {
     def deviceId: Option[String]
+
     def accessToken: String
   }
 
-  case class Play(deviceId: Option[String], accessToken: String) extends PlayerCommand
+  case class PlayerPlayCommandBody(context_uri: String, offset: Offset, position_ms: Int = 0)
 
-  case class Pause(deviceId: Option[String], accessToken: String) extends PlayerCommand
+  case class Offset(position: Int)
 
-  case class Next(deviceId: Option[String], accessToken: String) extends PlayerCommand
+  case class PlayerPlay(deviceId: Option[String], entity: PlayerPlayCommandBody, accessToken: String) extends PlayerCommand
 
-  case class Prev(deviceId: Option[String], accessToken: String) extends PlayerCommand
+  case class PlayerPause(deviceId: Option[String], accessToken: String) extends PlayerCommand
+
+  case class PlayerNext(deviceId: Option[String], accessToken: String) extends PlayerCommand
+
+  case class PlayerPrev(deviceId: Option[String], accessToken: String) extends PlayerCommand
+
 }
 
 class SpotifyPlayerService(implicit timeout: Timeout,
                            config: Config,
                            system: ActorSystem,
-                           executionContext: ExecutionContext) extends LoggerActor with RestClient {
+                           executionContext: ExecutionContext) extends LoggerActor
+  with LocalSerializer
+  with SpotifyUrlGetter
+  with RestClient {
   override def receive: Receive = {
-    case command: Play =>
+    case command: PlayerPlay =>
       val senderRef = sender()
       makePutRequest[ChangePlayerStateResponseBody](
         uri = getUrl(command),
         headers = getAuthorizationHeaders(command.accessToken),
-        body = null
+        body = Some(write(command.entity))
       )
         .map { response =>
           senderRef ! response
@@ -47,12 +57,12 @@ class SpotifyPlayerService(implicit timeout: Timeout,
         case e: Throwable =>
           senderRef ! e
       }
-    case command: Pause =>
+    case command: PlayerPause =>
       val senderRef = sender()
       makePutRequest[ChangePlayerStateResponseBody](
         uri = getUrl(command),
         headers = getAuthorizationHeaders(command.accessToken),
-        body = null
+        body = None
       )
         .map { response =>
           senderRef ! response
@@ -60,12 +70,12 @@ class SpotifyPlayerService(implicit timeout: Timeout,
         case e: Throwable =>
           senderRef ! e
       }
-    case command: Next =>
+    case command: PlayerNext =>
       val senderRef = sender()
-      makePutRequest[ChangePlayerStateResponseBody](
+      makePostRequest[ChangePlayerStateResponseBody](
         uri = getUrl(command),
         headers = getAuthorizationHeaders(command.accessToken),
-        body = null
+        body = None
       )
         .map { response =>
           senderRef ! response
@@ -73,12 +83,12 @@ class SpotifyPlayerService(implicit timeout: Timeout,
         case e: Throwable =>
           senderRef ! e
       }
-    case command: Prev =>
+    case command: PlayerPrev =>
       val senderRef = sender()
-      makePutRequest[ChangePlayerStateResponseBody](
+      makePostRequest[ChangePlayerStateResponseBody](
         uri = getUrl(command),
         headers = getAuthorizationHeaders(command.accessToken),
-        body = null
+        body = None
       )
         .map { response =>
           senderRef ! response
@@ -86,18 +96,5 @@ class SpotifyPlayerService(implicit timeout: Timeout,
         case e: Throwable =>
           senderRef ! e
       }
-  }
-
-  def getUrl(command: PlayerCommand): String = {
-    val deviceIdStr = if (command.deviceId.isDefined) command.deviceId.get else ""
-    val commandStr = command match {
-      case _: Play => "play"
-      case _: Pause => "pause"
-      case _: Next => "next"
-      case _: Prev => "previous"
-    }
-    config.getString("spotify-api-endpoints.player")
-      .replace("@@player_command@@", commandStr)
-      .replace("@@device_id@@", deviceIdStr)
   }
 }

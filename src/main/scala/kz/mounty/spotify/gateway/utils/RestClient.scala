@@ -1,7 +1,7 @@
 package kz.mounty.spotify.gateway.utils
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.model.headers.{Authorization, OAuth2BearerToken, `Content-Type`}
+import akka.http.scaladsl.model.headers.{Authorization, OAuth2BearerToken}
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
@@ -9,21 +9,29 @@ import akka.stream.Materializer
 import com.typesafe.config.Config
 import com.typesafe.sslconfig.akka.AkkaSSLConfig
 import kz.mounty.fm.exceptions.{ErrorCodes, ServerErrorRequestException}
-import kz.mounty.fm.serializers.Serializers
 import org.json4s.jackson.JsonMethods.parse
 
 import java.security.cert.X509Certificate
 import javax.net.ssl.{KeyManager, SSLContext, X509TrustManager}
 import scala.concurrent.{ExecutionContext, Future, Promise}
 
-trait RestClient extends Serializers with MountyEndpoint {
+trait RestClient extends LocalSerializer with MountyEndpoint {
   def makePostRequest[T: Manifest](uri: String,
                                    headers: List[HttpHeader],
-                                   body: String)
+                                   body: Option[String])
                                   (implicit system: ActorSystem,
                                    ec: ExecutionContext,
                                    mat: Materializer): Future[T] = {
     val p = Promise[T]
+
+    val entity = if(body.isDefined) {
+      HttpEntity(
+        ContentType(MediaTypes.`application/json`),
+        body.get
+      )
+    } else {
+      HttpEntity.Empty
+    }
 
     Http()
       .singleRequest(
@@ -31,10 +39,7 @@ trait RestClient extends Serializers with MountyEndpoint {
           uri = uri,
           method = HttpMethods.POST,
           headers = headers,
-          entity = HttpEntity(
-            ContentType(MediaTypes.`application/json`),
-            body
-          ),
+          entity = entity,
           protocol = HttpProtocols.`HTTP/1.1`
         ),
         getNoCertificateCheckContext
@@ -43,16 +48,16 @@ trait RestClient extends Serializers with MountyEndpoint {
 
   def makePutRequest[T: Manifest](uri: String,
                                   headers: List[HttpHeader],
-                                  body: String)
+                                  body: Option[String])
                                  (implicit system: ActorSystem,
                                   ec: ExecutionContext,
                                   mat: Materializer): Future[T] = {
     val p = Promise[T]
 
-    val entity = if(!body.isEmpty) {
+    val entity = if(body.isDefined) {
       HttpEntity(
         ContentType(MediaTypes.`application/json`),
-        body
+        body.get
       )
     } else {
       HttpEntity.Empty
@@ -126,7 +131,6 @@ trait RestClient extends Serializers with MountyEndpoint {
             p.success(parse(jsonString).camelizeKeys.extract[T])
           } recover {
             case e: Throwable =>
-              println("parse error: " + e)
               p.failure(
                 ServerErrorRequestException(
                   ErrorCodes.INTERNAL_SERVER_ERROR(errorSeries),
@@ -136,7 +140,6 @@ trait RestClient extends Serializers with MountyEndpoint {
           }
         }
       case e =>
-        println("http error: " + e)
         p.failure(
           ServerErrorRequestException(
             ErrorCodes.INTERNAL_SERVER_ERROR(errorSeries),

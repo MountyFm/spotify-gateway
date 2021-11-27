@@ -3,9 +3,9 @@ package kz.mounty.spotify.gateway.services
 import akka.actor.{ActorSystem, Props}
 import akka.util.Timeout
 import com.typesafe.config.Config
-import kz.mounty.fm.domain.spotify.gateway.requests.GetPlayListTracksResponseBody
+import kz.mounty.spotify.gateway.domain.response.GetPlaylistTracksSpotifyResponse
 import kz.mounty.spotify.gateway.services.SpotifyTrackService.GetPlaylistTracks
-import kz.mounty.spotify.gateway.utils.{LoggerActor, RestClient}
+import kz.mounty.spotify.gateway.utils.{LoggerActor, RestClient, SpotifyUrlGetter}
 
 import scala.concurrent.ExecutionContext
 
@@ -15,19 +15,20 @@ object SpotifyTrackService {
             system: ActorSystem,
             executionContext: ExecutionContext): Props = Props(new SpotifyTrackService)
 
-  case class GetPlaylistTracks(playlistId: String, accessToken: String)
+  sealed trait TrackServiceCommand extends ServiceCommand
+
+  case class GetPlaylistTracks(playlistId: String, accessToken: String) extends TrackServiceCommand
 }
 
 class SpotifyTrackService(implicit timeout: Timeout,
                           config: Config,
                           system: ActorSystem,
-                          executionContext: ExecutionContext) extends LoggerActor with RestClient {
+                          executionContext: ExecutionContext) extends LoggerActor with SpotifyUrlGetter with RestClient {
   override def receive: Receive = {
     case command: GetPlaylistTracks =>
-      val url = config.getString("spotify-api-endpoints.playlist_tracks").replace("@@playlist_id@@", command.playlistId)
       val senderRef = sender()
-      makeGetRequest[GetPlayListTracksResponseBody](
-        uri = url,
+      makeGetRequest[GetPlaylistTracksSpotifyResponse](
+        uri = getUrl(command),
         headers = getAuthorizationHeaders(command.accessToken))
         .map { response =>
           senderRef ! response

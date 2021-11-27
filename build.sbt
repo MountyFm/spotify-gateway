@@ -31,7 +31,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.play" %% "play-json" % "2.9.2",
   "org.scala-lang.modules" %% "scala-xml" % "1.1.0",
 
-  "kz.mounty"         %% "mounty-domain"    % "0.1.1-SNAPSHOT",
+  "kz.mounty"         %% "mounty-domain"    % "0.1.1",
   "org.scalaj"        %% "scalaj-http"      % "2.4.2",
   "com.rabbitmq" % "amqp-client" % "5.14.0"
 )

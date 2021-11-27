@@ -1,6 +1,5 @@
 package kz.mounty.spotify.gateway
 
-import Boot.{channel, config, system}
 import actors.{AmqpListenerActor, AmqpPublisherActor}
 import akka.actor.{ActorRef, ActorSystem}
 import akka.stream.Materializer

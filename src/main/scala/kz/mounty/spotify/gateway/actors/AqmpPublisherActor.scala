@@ -12,10 +12,11 @@ object AmqpPublisherActor {
   def props(channel: Channel, exchange: String): Props =
     Props(new AmqpPublisherActor(channel, exchange))
 }
+
 class AmqpPublisherActor(channel: Channel, exchange: String)
   extends Actor
     with ActorLogging
-    with Serializers{
+    with Serializers {
   override def receive: Receive = {
     case message: AMQPMessage =>
       log.info(s"sending message: $message to AMQP")
