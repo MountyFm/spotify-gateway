@@ -27,15 +27,14 @@ class SpotifyPlaylistService(implicit timeout: Timeout,
                              executionContext: ExecutionContext) extends LoggerActor with SpotifyUrlGetter with RestClient {
   override def receive: Receive = {
     case command: GetCurrentUserPlaylists =>
-      val senderRef = sender()
       makeGetRequest[GetCurrentUserPlaylistsSpotifyResponse](
         uri = getUrl(command),
         headers = getAuthorizationHeaders(command.accessToken))
         .map { response =>
-          senderRef ! response
+          context.parent ! response
         } recover {
         case e: Throwable =>
-          senderRef ! e
+          context.parent ! e
       }
       context.stop(self)
   }
