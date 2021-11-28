@@ -3,7 +3,7 @@ package kz.mounty.spotify.gateway.services
 import akka.actor.{ActorSystem, Props}
 import akka.util.Timeout
 import com.typesafe.config.Config
-import kz.mounty.spotify.gateway.domain.response.GetCurrentUserProfileSpotifyResponse
+import kz.mounty.spotify.gateway.domain.SpotifyUserProfile
 import kz.mounty.spotify.gateway.services.SpotifyUserProfileService.GetCurrentUserProfile
 import kz.mounty.spotify.gateway.utils.{LoggerActor, RestClient, SpotifyUrlGetter}
 
@@ -27,7 +27,7 @@ class SpotifyUserProfileService(implicit timeout: Timeout,
                                 executionContext: ExecutionContext) extends LoggerActor with SpotifyUrlGetter with RestClient {
   override def receive: Receive = {
     case command: GetCurrentUserProfile =>
-      makeGetRequest[GetCurrentUserProfileSpotifyResponse](
+      makeGetRequest[SpotifyUserProfile](
         uri = getUrl(command),
         headers = getAuthorizationHeaders(command.accessToken))
         .map { response =>
