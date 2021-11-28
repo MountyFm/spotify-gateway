@@ -5,4 +5,5 @@ case class SpotifyTrack(id: String,
                         artists: Seq[Artist],
                         name: String,
                         `type`: String,
-                        durationMs: Int)
+                        durationMs: Int,
+                        uri: String)

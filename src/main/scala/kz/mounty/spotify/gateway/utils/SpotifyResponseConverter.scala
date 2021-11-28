@@ -1,7 +1,7 @@
 package kz.mounty.spotify.gateway.utils
 
-import kz.mounty.fm.domain.playlist.Playlist
 import kz.mounty.fm.domain.requests._
+import kz.mounty.fm.domain.room.{Room, RoomStatus}
 import kz.mounty.fm.domain.track.Track
 import kz.mounty.fm.domain.user.UserProfile
 import kz.mounty.spotify.gateway.domain.SpotifyUserProfile
@@ -9,20 +9,23 @@ import kz.mounty.spotify.gateway.domain.response._
 import org.joda.time.DateTime
 
 trait SpotifyResponseConverter {
-  def convert(response: GetCurrentUserPlaylistsSpotifyResponse): GetCurrentUserPlaylistsResponseBody = {
-    val playlists = response.items.map {
+  def convert(response: GetCurrentUserPlaylistsSpotifyResponse): GetCurrentUserRoomsResponseBody = {
+    val rooms = response.items.map {
       spotifyPlaylistItem =>
-        Playlist(
+        Room(
           id = spotifyPlaylistItem.id,
-          name = spotifyPlaylistItem.name,
+          title = spotifyPlaylistItem.name,
+          genreIds = None,
+          status = RoomStatus.ACTIVE,
+          isPrivate = !spotifyPlaylistItem.public,
           imageUrl = spotifyPlaylistItem.images.head.url,
-          tracksTotalAmount = spotifyPlaylistItem.tracks.total,
-          isPublic = spotifyPlaylistItem.public,
-          spotifyUri = spotifyPlaylistItem.uri
+          inviteCode = None,
+          spotifyUri = spotifyPlaylistItem.uri,
+          createdAt = DateTime.now
         )
     }
-    GetCurrentUserPlaylistsResponseBody(
-      playlists = playlists
+    GetCurrentUserRoomsResponseBody(
+      rooms = rooms
     )
   }
 
@@ -34,7 +37,8 @@ trait SpotifyResponseConverter {
           imageUrl = spotifyTrackItem.track.album.images.head.url,
           artists = spotifyTrackItem.track.artists.map(_.name),
           name = spotifyTrackItem.track.name,
-          duration = spotifyTrackItem.track.durationMs
+          duration = spotifyTrackItem.track.durationMs,
+          spotifyUri = spotifyTrackItem.track.uri
         )
     }
     GetPlaylistTracksResponseBody(
@@ -62,7 +66,8 @@ trait SpotifyResponseConverter {
         imageUrl = response.item.album.images.head.url,
         artists = response.item.artists.map(_.name),
         name = response.item.name,
-        duration = response.item.durationMs
+        duration = response.item.durationMs,
+        spotifyUri = response.item.uri
       )
     )
   }

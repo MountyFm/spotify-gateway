@@ -24,7 +24,6 @@ class AmqpPublisherActor(channel: Channel, exchange: String)
       AmqpPublisher.publish(
         message,
         channel,
-        exchange
       ) match {
         case Success(value) => log.info(s"succefully send message $message")
         case Failure(exception) => log.warning(s"couldn't message ${exception.getMessage}")

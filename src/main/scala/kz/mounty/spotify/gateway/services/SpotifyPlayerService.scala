@@ -27,7 +27,7 @@ object SpotifyPlayerService {
 
   case class Offset(position: Int)
 
-  case class PlayerPlay(deviceId: Option[String], entity: PlayerPlayCommandBody, accessToken: String) extends PlayerCommand
+  case class PlayerPlay(deviceId: Option[String], entity: Option[PlayerPlayCommandBody] = None, accessToken: String) extends PlayerCommand
 
   case class PlayerPause(deviceId: Option[String], accessToken: String) extends PlayerCommand
 
@@ -51,7 +51,7 @@ class SpotifyPlayerService(implicit timeout: Timeout,
       makePutRequest[PlayerPlayGatewayResponseBody](
         uri = getUrl(command),
         headers = getAuthorizationHeaders(command.accessToken),
-        body = Some(write(command.entity))
+        body = if (command.entity.isDefined) Some(write(command.entity.get)) else None
       )
         .map { response =>
           context.parent ! response
