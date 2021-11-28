@@ -198,7 +198,6 @@ class AmqpListenerActor(redis: Redis)(implicit system: ActorSystem, ex: Executio
           }
         case SpotifyGateway.GetUserProfileGatewayRequest.routingKey =>
           val command = parse(amqpMessage.entity).extract[GetUserProfileGatewayRequestBody]
-          println("GOT REQUEST: " + command)
           getTokenFromRedis(command.tokenKey).onComplete {
             case Success(token) =>
               (context.actorOf(SpotifyUserProfileService.props) ? SpotifyUserProfileService.GetCurrentUserProfile(
