@@ -53,8 +53,8 @@ object Boot extends App {
     "mounty-messages.spotify-gateway.#"
   )
 
-  implicit val publisher: ActorRef = system.actorOf(AmqpPublisherActor.props(channel, "X:mounty-api-out"))
+  implicit val publisher: ActorRef = system.actorOf(AmqpPublisherActor.props(channel, "X:mounty-spotify-gateway-in"))
 
   val listener: ActorRef = system.actorOf(AmqpListenerActor.props(redis))
-  channel.basicConsume("Q:mounty-user-profile-core-queue", AmqpConsumer(listener))
+  channel.basicConsume("Q:mounty-spotify-gateway-queue", AmqpConsumer(listener))
 }
