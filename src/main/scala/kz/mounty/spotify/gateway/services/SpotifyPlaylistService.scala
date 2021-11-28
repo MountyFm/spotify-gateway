@@ -1,6 +1,6 @@
 package kz.mounty.spotify.gateway.services
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.util.Timeout
 import com.typesafe.config.Config
 import kz.mounty.spotify.gateway.domain.response.GetCurrentUserPlaylistsSpotifyResponse
@@ -13,6 +13,7 @@ object SpotifyPlaylistService {
   def props(implicit timeout: Timeout,
             config: Config,
             system: ActorSystem,
+            publisher: ActorRef,
             executionContext: ExecutionContext): Props = Props(new SpotifyPlaylistService)
 
   sealed trait PlaylistServiceCommand extends ServiceCommand

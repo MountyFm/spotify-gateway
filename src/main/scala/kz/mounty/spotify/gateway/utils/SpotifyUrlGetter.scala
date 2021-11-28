@@ -17,17 +17,17 @@ trait SpotifyUrlGetter {
           s"${config.getString("spotify-api-base-url")}/me/player/play"
       case cmd: PlayerPause =>
         if(cmd.deviceId.isDefined)
-          s"${config.getString("spotify-api-base-url")}/me/player/pause?device_id=$cmd.deviceId.get"
+          s"${config.getString("spotify-api-base-url")}/me/player/pause?device_id=${cmd.deviceId.get}"
         else
           s"${config.getString("spotify-api-base-url")}/me/player/pause"
       case cmd: PlayerNext =>
         if(cmd.deviceId.isDefined)
-          s"${config.getString("spotify-api-base-url")}/me/player/next?device_id=$cmd.deviceId.get"
+          s"${config.getString("spotify-api-base-url")}/me/player/next?device_id=${cmd.deviceId.get}"
         else
           s"${config.getString("spotify-api-base-url")}/me/player/next"
       case cmd: PlayerPrev =>
         if(cmd.deviceId.isDefined)
-          s"${config.getString("spotify-api-base-url")}/me/player/previous?device_id=$cmd.deviceId.get"
+          s"${config.getString("spotify-api-base-url")}/me/player/previous?device_id=${cmd.deviceId.get}"
         else
           s"${config.getString("spotify-api-base-url")}/me/player/previous"
       case _: GetCurrentUserPlaylists =>
@@ -36,6 +36,8 @@ trait SpotifyUrlGetter {
         s"${config.getString("spotify-api-base-url")}/playlists/${cmd.playlistId}/tracks"
       case _: GetCurrentUserProfile =>
         s"${config.getString("spotify-api-base-url")}/me"
+      case _: PlayerGetCurrentlyPlaying =>
+        s"${config.getString("spotify-api-base-url")}/me/player/currently-playing"
     }
   }
 }

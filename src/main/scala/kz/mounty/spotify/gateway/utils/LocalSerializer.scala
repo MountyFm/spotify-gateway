@@ -1,7 +1,7 @@
 package kz.mounty.spotify.gateway.utils
 
 import kz.mounty.spotify.gateway.domain.{Album, Artist, Image, SpotifyPlaylist, SpotifyPlaylistItem, SpotifyTrack, SpotifyTracks}
-import kz.mounty.spotify.gateway.domain.response.{GetCurrentUserPlaylistsSpotifyResponse, GetCurrentUserProfileSpotifyResponse, GetPlaylistTracksSpotifyResponse}
+import kz.mounty.spotify.gateway.domain.response.{GetCurrentUserPlaylistsSpotifyResponse, GetCurrentUserProfileSpotifyResponse, GetCurrentlyPlayingTrackSpotifyResponse, GetPlaylistTracksSpotifyResponse}
 import kz.mounty.spotify.gateway.services.SpotifyPlayerService.{Offset, PlayerPlayCommandBody}
 import org.json4s.ShortTypeHints
 import org.json4s.jackson.Serialization
@@ -22,6 +22,7 @@ trait LocalSerializer {
         classOf[SpotifyTracks],
         classOf[Offset],
         classOf[PlayerPlayCommandBody],
+        classOf[GetCurrentlyPlayingTrackSpotifyResponse],
       )
     )
   )

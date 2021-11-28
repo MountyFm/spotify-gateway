@@ -43,7 +43,7 @@ trait RestClient extends LocalSerializer with MountyEndpoint {
           protocol = HttpProtocols.`HTTP/1.1`
         ),
         getNoCertificateCheckContext
-      ).flatMap(httpResponse => handleResponse(p, httpResponse))
+      ).flatMap(httpResponse => handleHttpResponse(p, httpResponse))
   }
 
   def makePutRequest[T: Manifest](uri: String,
@@ -73,7 +73,7 @@ trait RestClient extends LocalSerializer with MountyEndpoint {
           protocol = HttpProtocols.`HTTP/1.1`
         ),
         getNoCertificateCheckContext
-      ).flatMap(httpResponse => handleResponse(p, httpResponse))
+      ).flatMap(httpResponse => handleHttpResponse(p, httpResponse))
   }
 
   def makeGetRequest[T: Manifest](uri: String,
@@ -92,7 +92,7 @@ trait RestClient extends LocalSerializer with MountyEndpoint {
           protocol = HttpProtocols.`HTTP/1.1`
         ),
         getNoCertificateCheckContext
-      ).flatMap(httpResponse => handleResponse(p, httpResponse))
+      ).flatMap(httpResponse => handleHttpResponse(p, httpResponse))
   }
 
   private val trustfulSslContext: SSLContext = {
@@ -122,7 +122,7 @@ trait RestClient extends LocalSerializer with MountyEndpoint {
     )
   }
 
-  def handleResponse[T: Manifest](p: Promise[T], httpResponse: HttpResponse)
+  def handleHttpResponse[T: Manifest](p: Promise[T], httpResponse: HttpResponse)
                                  (implicit mat: Materializer, ex: ExecutionContext): Future[T] = {
     httpResponse.status match {
       case StatusCodes.OK =>
@@ -143,7 +143,7 @@ trait RestClient extends LocalSerializer with MountyEndpoint {
         p.failure(
           ServerErrorRequestException(
             ErrorCodes.INTERNAL_SERVER_ERROR(errorSeries),
-            Some(s"Http error response: ${httpResponse.status}")
+            Some(s"Http error response: ${httpResponse.status}, $e")
           )
         )
     }

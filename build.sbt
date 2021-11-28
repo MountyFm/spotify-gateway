@@ -23,6 +23,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-stream" % akkaVersion,
   "de.heikoseeberger" %% "akka-http-json4s" % "1.38.2",
   "com.typesafe.akka" %% "akka-http" % "10.2.6",
+  "com.github.scredis" %% "scredis" % "2.3.4",
   "ch.qos.logback" % "logback-classic" % "1.2.7",
   "org.json4s" %% "json4s-native" % jsonVersion,
   "org.json4s" %% "json4s-jackson" % jsonVersion,

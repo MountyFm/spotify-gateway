@@ -3,7 +3,8 @@ package kz.mounty.spotify.gateway.services
 import akka.actor.{ActorSystem, Props}
 import akka.util.Timeout
 import com.typesafe.config.Config
-import kz.mounty.fm.domain.commands.ChangePlayerStateResponseBody
+import kz.mounty.fm.domain.commands._
+import kz.mounty.spotify.gateway.domain.response.GetCurrentlyPlayingTrackSpotifyResponse
 import kz.mounty.spotify.gateway.services.SpotifyPlayerService._
 import kz.mounty.spotify.gateway.utils.{LocalSerializer, LoggerActor, RestClient, SpotifyUrlGetter}
 import org.json4s.jackson.Serialization.write
@@ -34,6 +35,8 @@ object SpotifyPlayerService {
 
   case class PlayerPrev(deviceId: Option[String], accessToken: String) extends PlayerCommand
 
+  case class PlayerGetCurrentlyPlaying(deviceId: Option[String] = None, accessToken: String) extends PlayerCommand
+
 }
 
 class SpotifyPlayerService(implicit timeout: Timeout,
@@ -45,56 +48,73 @@ class SpotifyPlayerService(implicit timeout: Timeout,
   with RestClient {
   override def receive: Receive = {
     case command: PlayerPlay =>
-      val senderRef = sender()
-      makePutRequest[ChangePlayerStateResponseBody](
+      makePutRequest[PlayerPlayGatewayResponseBody](
         uri = getUrl(command),
         headers = getAuthorizationHeaders(command.accessToken),
         body = Some(write(command.entity))
       )
         .map { response =>
-          senderRef ! response
+          context.parent ! response
         } recover {
         case e: Throwable =>
-          senderRef ! e
+          context.parent ! e
       }
+      context.stop(self)
+
     case command: PlayerPause =>
-      val senderRef = sender()
-      makePutRequest[ChangePlayerStateResponseBody](
+      makePutRequest[PlayerPauseGatewayResponseBody](
         uri = getUrl(command),
         headers = getAuthorizationHeaders(command.accessToken),
         body = None
       )
         .map { response =>
-          senderRef ! response
+          context.parent ! response
         } recover {
         case e: Throwable =>
-          senderRef ! e
+          context.parent ! e
       }
+      context.stop(self)
+
     case command: PlayerNext =>
-      val senderRef = sender()
-      makePostRequest[ChangePlayerStateResponseBody](
+      makePostRequest[PlayerNextGatewayResponseBody](
         uri = getUrl(command),
         headers = getAuthorizationHeaders(command.accessToken),
         body = None
       )
         .map { response =>
-          senderRef ! response
+          context.parent ! response
         } recover {
         case e: Throwable =>
-          senderRef ! e
+          context.parent ! e
       }
+      context.stop(self)
+
     case command: PlayerPrev =>
-      val senderRef = sender()
-      makePostRequest[ChangePlayerStateResponseBody](
+      makePostRequest[PlayerPrevGatewayResponseBody](
         uri = getUrl(command),
         headers = getAuthorizationHeaders(command.accessToken),
         body = None
       )
         .map { response =>
-          senderRef ! response
+          context.parent ! response
         } recover {
         case e: Throwable =>
-          senderRef ! e
+          context.parent ! e
       }
+      context.stop(self)
+
+    case command: PlayerGetCurrentlyPlaying =>
+      makeGetRequest[GetCurrentlyPlayingTrackSpotifyResponse](
+        uri = getUrl(command),
+        headers = getAuthorizationHeaders(command.accessToken)
+      )
+        .map { response =>
+          context.parent ! response
+        } recover {
+        case e: Throwable =>
+          context.parent ! e
+      }
+      context.stop(self)
+
   }
 }

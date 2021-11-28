@@ -6,6 +6,7 @@ import akka.stream.Materializer
 import akka.util.Timeout
 import com.typesafe.config.{Config, ConfigFactory}
 import kz.mounty.fm.amqp.{AmqpConsumer, RabbitMQConnection}
+import scredis.Redis
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, SECONDS}
@@ -24,6 +25,7 @@ object Boot extends App {
   val password = config.getString("rabbitmq.password")
   val virtualHost = config.getString("rabbitmq.virtualHost")
 
+  val redis: Redis = Redis(config.getConfig("redis"))
 
   val connection = RabbitMQConnection.rabbitMQConnection(
     username,
@@ -53,6 +55,6 @@ object Boot extends App {
 
   implicit val publisher: ActorRef = system.actorOf(AmqpPublisherActor.props(channel, "X:mounty-api-out"))
 
-  val listener: ActorRef = system.actorOf(AmqpListenerActor.props())
+  val listener: ActorRef = system.actorOf(AmqpListenerActor.props(redis))
   channel.basicConsume("Q:mounty-user-profile-core-queue", AmqpConsumer(listener))
 }
