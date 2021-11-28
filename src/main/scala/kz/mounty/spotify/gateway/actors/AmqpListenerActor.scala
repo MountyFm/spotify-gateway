@@ -5,15 +5,16 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.typesafe.config.Config
 import kz.mounty.fm.amqp.messages.AMQPMessage
-import kz.mounty.fm.amqp.messages.MountyMessages.SpotifyGateway
+import kz.mounty.fm.amqp.messages.MountyMessages.{RoomCore, SpotifyGateway, UserProfileCore}
 import kz.mounty.fm.domain.DomainEntity
 import kz.mounty.fm.domain.commands._
 import kz.mounty.fm.domain.requests._
 import kz.mounty.fm.exceptions.{ErrorCodes, MountyException, ServerErrorRequestException}
 import kz.mounty.fm.serializers.Serializers
-import kz.mounty.spotify.gateway.domain.response.{GetCurrentUserPlaylistsSpotifyResponse, GetCurrentlyPlayingTrackSpotifyResponse}
-import kz.mounty.spotify.gateway.services.{SpotifyPlayerService, SpotifyPlaylistService}
-import kz.mounty.spotify.gateway.services.SpotifyPlaylistService.GetCurrentUserPlaylists
+import kz.mounty.spotify.gateway.domain.SpotifyUserProfile
+import kz.mounty.spotify.gateway.domain.response._
+import kz.mounty.spotify.gateway.services.{SpotifyPlayerService, SpotifyPlaylistService, SpotifyUserProfileService}
+import kz.mounty.spotify.gateway.services.SpotifyPlaylistService.{GetCurrentUserPlaylists, GetPlaylistTracks}
 import kz.mounty.spotify.gateway.utils.{LoggerActor, MountyEndpoint, SpotifyResponseConverter}
 import org.json4s.jackson.JsonMethods.parse
 import scredis.Redis
@@ -42,8 +43,8 @@ class AmqpListenerActor(redis: Redis)(implicit system: ActorSystem, ex: Executio
       val amqpMessage = parse(message).extract[AMQPMessage]
 
       amqpMessage.routingKey match {
-        case SpotifyGateway.GetUserPlaylistRequest.routingKey =>
-          val command = parse(amqpMessage.entity).extract[GetCurrentUserPlaylistsRequestBody]
+        case SpotifyGateway.GetCurrentUserRoomsRequest.routingKey =>
+          val command = parse(amqpMessage.entity).extract[GetCurrentUserRoomsRequestBody]
           getTokenFromRedis(command.tokenKey).onComplete {
             case Success(token) =>
               (context.actorOf(SpotifyPlaylistService.props) ? GetCurrentUserPlaylists(
@@ -62,18 +63,41 @@ class AmqpListenerActor(redis: Redis)(implicit system: ActorSystem, ex: Executio
             case Failure(exception) =>
               handleException(exception, Some("access key is missing"), amqpMessage)
           }
+        case SpotifyGateway.GetPlaylistTracksRequest.routingKey =>
+          val command = parse(amqpMessage.entity).extract[GetPlaylistTracksRequestBody]
+          getTokenFromRedis(command.tokenKey).onComplete {
+            case Success(token) =>
+              (context.actorOf(SpotifyPlaylistService.props) ? GetPlaylistTracks(
+                playlistId = command.playlistId,
+                accessToken = token
+              )).map {
+                case response: GetPlaylistTracksSpotifyResponse =>
+                  handleSuccessfulResponse(convert(response), amqpMessage)
+                case e: Throwable =>
+                  handleException(e, Some(e.getMessage), amqpMessage)
+                case any =>
+                  handleUnknownResponse(any, amqpMessage)
+              } recover {
+                case e: Throwable =>
+                  handleException(e, Some(e.getMessage), amqpMessage)
+              }
+            case Failure(exception) =>
+              handleException(exception, Some("access key is missing"), amqpMessage)
+          }
         case SpotifyGateway.PlayerPlayGatewayCommand.routingKey =>
           val command = parse(amqpMessage.entity).extract[PlayerPlayGatewayCommandBody]
           getTokenFromRedis(command.tokenKey).onComplete {
             case Success(token) =>
+              val entity = if (command.contextUri.isDefined && command.offset.isDefined) {
+                Some(SpotifyPlayerService.PlayerPlayCommandBody(
+                  context_uri = command.contextUri.get,
+                  offset = SpotifyPlayerService.Offset(
+                    position = command.offset.get
+                  )))
+              } else None
               (context.actorOf(SpotifyPlayerService.props) ? SpotifyPlayerService.PlayerPlay(
                 deviceId = command.deviceId,
-                entity = SpotifyPlayerService.PlayerPlayCommandBody(
-                  context_uri = command.contextUri,
-                  offset = SpotifyPlayerService.Offset(
-                    position = command.offset
-                  )
-                ),
+                entity = entity,
                 accessToken = token
               )).map {
                 case response: PlayerPlayGatewayResponseBody =>
@@ -172,6 +196,26 @@ class AmqpListenerActor(redis: Redis)(implicit system: ActorSystem, ex: Executio
             case Failure(exception) =>
               handleException(exception, Some("access key is missing"), amqpMessage)
           }
+        case SpotifyGateway.GetUserProfileGatewayRequest.routingKey =>
+          val command = parse(amqpMessage.entity).extract[GetUserProfileGatewayRequestBody]
+          getTokenFromRedis(command.tokenKey).onComplete {
+            case Success(token) =>
+              (context.actorOf(SpotifyUserProfileService.props) ? SpotifyUserProfileService.GetCurrentUserProfile(
+                accessToken = token
+              )).map {
+                case response: SpotifyUserProfile =>
+                  handleSuccessfulResponse(convert(response), amqpMessage)
+                case e: Throwable =>
+                  handleException(e, Some(e.getMessage), amqpMessage)
+                case any =>
+                  handleUnknownResponse(any, amqpMessage)
+              } recover {
+                case e: Throwable =>
+                  handleException(e, Some(e.getMessage), amqpMessage)
+              }
+            case Failure(exception) =>
+              handleException(exception, Some("access key is missing"), amqpMessage)
+          }
         case _ =>
           log.info("something else")
       }
@@ -188,16 +232,7 @@ class AmqpListenerActor(redis: Redis)(implicit system: ActorSystem, ex: Executio
 
   def handleSuccessfulResponse(response: DomainEntity,
                                amqpMessage: AMQPMessage): Unit = {
-    val responseRoutingKey = amqpMessage.routingKey match {
-      case SpotifyGateway.GetUserPlaylistRequest.routingKey => SpotifyGateway.GetUserPlaylistResponse.routingKey
-      case SpotifyGateway.PlayerPlayGatewayCommand.routingKey => SpotifyGateway.PlayerPlayGatewayResponse.routingKey
-      case SpotifyGateway.PlayerPauseGatewayCommand.routingKey => SpotifyGateway.PlayerPauseGatewayResponse.routingKey
-      case SpotifyGateway.PlayerNextGatewayCommand.routingKey => SpotifyGateway.PlayerNextGatewayResponse.routingKey
-      case SpotifyGateway.PlayerPrevGatewayCommand.routingKey => SpotifyGateway.PlayerPrevGatewayResponse.routingKey
-      case SpotifyGateway.GetCurrentlyPlayingTrackRequest.routingKey => SpotifyGateway.GetCurrentlyPlayingTrackResponse.routingKey
-      case _ => "unknown routing key"
-    }
-    publisher ! amqpMessage.copy(entity = write(response), routingKey = responseRoutingKey)
+    publisher ! amqpMessage.copy(entity = write(response), routingKey = getResponseRoutingKey(amqpMessage.routingKey), exchange = "X:mounty-spotify-gateway-out")
   }
 
   def handleException(exception: Throwable,
@@ -217,16 +252,7 @@ class AmqpListenerActor(redis: Redis)(implicit system: ActorSystem, ex: Executio
         ).getExceptionInfo
     }
 
-    val responseRoutingKey = amqpMessage.routingKey match {
-      case SpotifyGateway.GetUserPlaylistRequest.routingKey => SpotifyGateway.GetUserPlaylistResponse.routingKey
-      case SpotifyGateway.PlayerPlayGatewayCommand.routingKey => SpotifyGateway.PlayerPlayGatewayResponse.routingKey
-      case SpotifyGateway.PlayerPauseGatewayCommand.routingKey => SpotifyGateway.PlayerPauseGatewayResponse.routingKey
-      case SpotifyGateway.PlayerNextGatewayCommand.routingKey => SpotifyGateway.PlayerNextGatewayResponse.routingKey
-      case SpotifyGateway.PlayerPrevGatewayCommand.routingKey => SpotifyGateway.PlayerPrevGatewayResponse.routingKey
-      case SpotifyGateway.GetCurrentlyPlayingTrackRequest.routingKey => SpotifyGateway.GetCurrentlyPlayingTrackResponse.routingKey
-      case _ => "unknown routing key"
-    }
-    publisher ! amqpMessage.copy(entity = write(exceptionInfo), routingKey = responseRoutingKey)
+    publisher ! amqpMessage.copy(entity = write(exceptionInfo), routingKey = getResponseRoutingKey(amqpMessage.routingKey), exchange = "X:mounty-spotify-gateway-out")
   }
 
   def handleUnknownResponse(response: Any, amqpMessage: AMQPMessage): Unit = {
@@ -237,5 +263,19 @@ class AmqpListenerActor(redis: Redis)(implicit system: ActorSystem, ex: Executio
       Some("unknown response")
     )
     handleException(exception, Some(s"received unhandled response: $response"), amqpMessage)
+  }
+
+  def getResponseRoutingKey(requestRoutingKey: String): String = {
+    requestRoutingKey match {
+      case SpotifyGateway.GetCurrentUserRoomsRequest.routingKey => RoomCore.GetCurrentUserRoomsResponse.routingKey
+      case SpotifyGateway.GetPlaylistTracksRequest.routingKey => RoomCore.GetPlaylistTracksResponse.routingKey
+      case SpotifyGateway.GetUserProfileGatewayRequest.routingKey => UserProfileCore.GetUserProfileGatewayResponse.routingKey
+      case SpotifyGateway.PlayerPlayGatewayCommand.routingKey => RoomCore.PlayerPlayGatewayResponse.routingKey
+      case SpotifyGateway.PlayerPauseGatewayCommand.routingKey => RoomCore.PlayerPauseGatewayResponse.routingKey
+      case SpotifyGateway.PlayerNextGatewayCommand.routingKey => RoomCore.PlayerNextGatewayResponse.routingKey
+      case SpotifyGateway.PlayerPrevGatewayCommand.routingKey => RoomCore.PlayerPrevGatewayResponse.routingKey
+      case SpotifyGateway.GetCurrentlyPlayingTrackRequest.routingKey => RoomCore.GetCurrentlyPlayingTrackResponse.routingKey
+      case _ => "unknown routing key"
+    }
   }
 }

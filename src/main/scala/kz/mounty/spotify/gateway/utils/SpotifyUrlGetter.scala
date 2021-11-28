@@ -2,8 +2,7 @@ package kz.mounty.spotify.gateway.utils
 
 import com.typesafe.config.Config
 import kz.mounty.spotify.gateway.services.SpotifyPlayerService._
-import kz.mounty.spotify.gateway.services.SpotifyPlaylistService.GetCurrentUserPlaylists
-import kz.mounty.spotify.gateway.services.SpotifyTrackService.GetPlaylistTracks
+import kz.mounty.spotify.gateway.services.SpotifyPlaylistService.{GetCurrentUserPlaylists, GetPlaylistTracks}
 import kz.mounty.spotify.gateway.services.SpotifyUserProfileService.GetCurrentUserProfile
 import kz.mounty.spotify.gateway.services._
 

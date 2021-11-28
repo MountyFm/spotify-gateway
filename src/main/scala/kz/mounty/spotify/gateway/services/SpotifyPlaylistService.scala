@@ -3,8 +3,8 @@ package kz.mounty.spotify.gateway.services
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.util.Timeout
 import com.typesafe.config.Config
-import kz.mounty.spotify.gateway.domain.response.GetCurrentUserPlaylistsSpotifyResponse
-import kz.mounty.spotify.gateway.services.SpotifyPlaylistService.GetCurrentUserPlaylists
+import kz.mounty.spotify.gateway.domain.response.{GetCurrentUserPlaylistsSpotifyResponse, GetPlaylistTracksSpotifyResponse}
+import kz.mounty.spotify.gateway.services.SpotifyPlaylistService.{GetCurrentUserPlaylists, GetPlaylistTracks}
 import kz.mounty.spotify.gateway.utils.{LoggerActor, RestClient, SpotifyUrlGetter}
 
 import scala.concurrent.ExecutionContext
@@ -19,6 +19,8 @@ object SpotifyPlaylistService {
   sealed trait PlaylistServiceCommand extends ServiceCommand
 
   case class GetCurrentUserPlaylists(accessToken: String) extends PlaylistServiceCommand
+
+  case class GetPlaylistTracks(playlistId: String, accessToken: String) extends PlaylistServiceCommand
 }
 
 class SpotifyPlaylistService(implicit timeout: Timeout,
@@ -28,6 +30,18 @@ class SpotifyPlaylistService(implicit timeout: Timeout,
   override def receive: Receive = {
     case command: GetCurrentUserPlaylists =>
       makeGetRequest[GetCurrentUserPlaylistsSpotifyResponse](
+        uri = getUrl(command),
+        headers = getAuthorizationHeaders(command.accessToken))
+        .map { response =>
+          context.parent ! response
+        } recover {
+        case e: Throwable =>
+          context.parent ! e
+      }
+      context.stop(self)
+
+    case command: GetPlaylistTracks =>
+      makeGetRequest[GetPlaylistTracksSpotifyResponse](
         uri = getUrl(command),
         headers = getAuthorizationHeaders(command.accessToken))
         .map { response =>
