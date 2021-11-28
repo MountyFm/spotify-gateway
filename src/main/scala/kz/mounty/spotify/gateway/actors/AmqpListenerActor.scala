@@ -43,8 +43,8 @@ class AmqpListenerActor(redis: Redis)(implicit system: ActorSystem, ex: Executio
       val amqpMessage = parse(message).extract[AMQPMessage]
 
       amqpMessage.routingKey match {
-        case SpotifyGateway.GetCurrentUserRoomsRequest.routingKey =>
-          val command = parse(amqpMessage.entity).extract[GetCurrentUserRoomsRequestBody]
+        case SpotifyGateway.GetCurrentUserRoomsGatewayRequest.routingKey =>
+          val command = parse(amqpMessage.entity).extract[GetCurrentUserRoomsGatewayRequestBody]
           getTokenFromRedis(command.tokenKey).onComplete {
             case Success(token) =>
               (context.actorOf(SpotifyPlaylistService.props) ? GetCurrentUserPlaylists(
@@ -63,8 +63,8 @@ class AmqpListenerActor(redis: Redis)(implicit system: ActorSystem, ex: Executio
             case Failure(exception) =>
               handleException(exception, Some("access key is missing"), amqpMessage)
           }
-        case SpotifyGateway.GetPlaylistTracksRequest.routingKey =>
-          val command = parse(amqpMessage.entity).extract[GetPlaylistTracksRequestBody]
+        case SpotifyGateway.GetPlaylistTracksGatewayRequest.routingKey =>
+          val command = parse(amqpMessage.entity).extract[GetPlaylistTracksGatewayRequestBody]
           getTokenFromRedis(command.tokenKey).onComplete {
             case Success(token) =>
               (context.actorOf(SpotifyPlaylistService.props) ? GetPlaylistTracks(
@@ -176,8 +176,8 @@ class AmqpListenerActor(redis: Redis)(implicit system: ActorSystem, ex: Executio
             case Failure(exception) =>
               handleException(exception, Some("access key is missing"), amqpMessage)
           }
-        case SpotifyGateway.GetCurrentlyPlayingTrackRequest.routingKey =>
-          val command = parse(amqpMessage.entity).extract[GetCurrentlyPlayingTrackRequestBody]
+        case SpotifyGateway.GetCurrentlyPlayingTrackGatewayRequest.routingKey =>
+          val command = parse(amqpMessage.entity).extract[GetCurrentlyPlayingTrackGatewayRequestBody]
           getTokenFromRedis(command.tokenKey).onComplete {
             case Success(token) =>
               (context.actorOf(SpotifyPlayerService.props) ? SpotifyPlayerService.PlayerGetCurrentlyPlaying(
@@ -198,6 +198,7 @@ class AmqpListenerActor(redis: Redis)(implicit system: ActorSystem, ex: Executio
           }
         case SpotifyGateway.GetUserProfileGatewayRequest.routingKey =>
           val command = parse(amqpMessage.entity).extract[GetUserProfileGatewayRequestBody]
+          println("GOT REQUEST: " + command)
           getTokenFromRedis(command.tokenKey).onComplete {
             case Success(token) =>
               (context.actorOf(SpotifyUserProfileService.props) ? SpotifyUserProfileService.GetCurrentUserProfile(
@@ -267,14 +268,14 @@ class AmqpListenerActor(redis: Redis)(implicit system: ActorSystem, ex: Executio
 
   def getResponseRoutingKey(requestRoutingKey: String): String = {
     requestRoutingKey match {
-      case SpotifyGateway.GetCurrentUserRoomsRequest.routingKey => RoomCore.GetCurrentUserRoomsResponse.routingKey
-      case SpotifyGateway.GetPlaylistTracksRequest.routingKey => RoomCore.GetPlaylistTracksResponse.routingKey
+      case SpotifyGateway.GetCurrentUserRoomsGatewayRequest.routingKey => RoomCore.GetCurrentUserRoomsGatewayResponse.routingKey
+      case SpotifyGateway.GetPlaylistTracksGatewayRequest.routingKey => RoomCore.GetPlaylistTracksGatewayResponse.routingKey
       case SpotifyGateway.GetUserProfileGatewayRequest.routingKey => UserProfileCore.GetUserProfileGatewayResponse.routingKey
       case SpotifyGateway.PlayerPlayGatewayCommand.routingKey => RoomCore.PlayerPlayGatewayResponse.routingKey
       case SpotifyGateway.PlayerPauseGatewayCommand.routingKey => RoomCore.PlayerPauseGatewayResponse.routingKey
       case SpotifyGateway.PlayerNextGatewayCommand.routingKey => RoomCore.PlayerNextGatewayResponse.routingKey
       case SpotifyGateway.PlayerPrevGatewayCommand.routingKey => RoomCore.PlayerPrevGatewayResponse.routingKey
-      case SpotifyGateway.GetCurrentlyPlayingTrackRequest.routingKey => RoomCore.GetCurrentlyPlayingTrackResponse.routingKey
+      case SpotifyGateway.GetCurrentlyPlayingTrackGatewayRequest.routingKey => RoomCore.GetCurrentlyPlayingTrackGatewayResponse.routingKey
       case _ => "unknown routing key"
     }
   }
