@@ -43,6 +43,7 @@ trait SpotifyResponseConverter {
     }
     GetPlaylistTracksGatewayResponseBody(
       roomId = roomId,
+    GetPlaylistTracksGatewayResponseBody(
       tracks = tracks
     )
   }
