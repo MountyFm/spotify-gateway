@@ -9,7 +9,7 @@ import kz.mounty.spotify.gateway.domain.response._
 import org.joda.time.DateTime
 
 trait SpotifyResponseConverter {
-  def convert(response: GetCurrentUserPlaylistsSpotifyResponse): GetCurrentUserRoomsResponseBody = {
+  def convert(response: GetCurrentUserPlaylistsSpotifyResponse): GetCurrentUserRoomsGatewayResponseBody = {
     val rooms = response.items.map {
       spotifyPlaylistItem =>
         Room(
@@ -24,12 +24,12 @@ trait SpotifyResponseConverter {
           createdAt = DateTime.now
         )
     }
-    GetCurrentUserRoomsResponseBody(
+    GetCurrentUserRoomsGatewayResponseBody(
       rooms = rooms
     )
   }
 
-  def convert(response: GetPlaylistTracksSpotifyResponse): GetPlaylistTracksResponseBody = {
+  def convert(roomId: String, response: GetPlaylistTracksSpotifyResponse): GetPlaylistTracksGatewayResponseBody = {
     val tracks = response.items.map {
       spotifyTrackItem =>
         Track(
@@ -41,7 +41,8 @@ trait SpotifyResponseConverter {
           spotifyUri = spotifyTrackItem.track.uri
         )
     }
-    GetPlaylistTracksResponseBody(
+    GetPlaylistTracksGatewayResponseBody(
+      roomId = roomId,
       tracks = tracks
     )
   }
@@ -59,8 +60,8 @@ trait SpotifyResponseConverter {
     )
   }
 
-  def convert(response: GetCurrentlyPlayingTrackSpotifyResponse): GetCurrentlyPlayingTrackResponseBody = {
-    GetCurrentlyPlayingTrackResponseBody(
+  def convert(response: GetCurrentlyPlayingTrackSpotifyResponse): GetCurrentlyPlayingTrackGatewayResponseBody = {
+    GetCurrentlyPlayingTrackGatewayResponseBody(
       track = Track(
         id = response.item.id,
         imageUrl = response.item.album.images.head.url,
