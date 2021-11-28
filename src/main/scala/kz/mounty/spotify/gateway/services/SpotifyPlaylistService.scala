@@ -37,5 +37,6 @@ class SpotifyPlaylistService(implicit timeout: Timeout,
         case e: Throwable =>
           senderRef ! e
       }
+      context.stop(self)
   }
 }
