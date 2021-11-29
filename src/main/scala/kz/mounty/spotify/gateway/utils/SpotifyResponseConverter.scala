@@ -43,9 +43,7 @@ trait SpotifyResponseConverter {
     }
     GetPlaylistTracksGatewayResponseBody(
       roomId = roomId,
-    GetPlaylistTracksGatewayResponseBody(
-      tracks = tracks
-    )
+      tracks = tracks)
   }
 
   def convert(response: SpotifyUserProfile): GetUserProfileGatewayResponseBody = {
