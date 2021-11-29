@@ -240,19 +240,18 @@ class AmqpListenerActor(redis: Redis)(implicit system: ActorSystem, ex: Executio
                       amqpMessage: AMQPMessage): Unit = {
     writeErrorLog(s"Received exception: $exceptionMessage", exception)
 
-    val exceptionInfo = exception match {
-      case e: MountyException =>
-        e.getExceptionInfo
+    val error = exception match {
+      case e: MountyException => e
       case _ =>
         ServerErrorRequestException(
           ErrorCodes.INTERNAL_SERVER_ERROR(
             errorSeries
           ),
           exceptionMessage
-        ).getExceptionInfo
+        )
     }
 
-    publisher ! amqpMessage.copy(entity = write(exceptionInfo), routingKey = getResponseRoutingKey(amqpMessage.routingKey), exchange = "X:mounty-spotify-gateway-out")
+    publisher ! amqpMessage.copy(entity = write(error), routingKey = getResponseRoutingKey(amqpMessage.routingKey), exchange = "X:mounty-spotify-gateway-out")
   }
 
   def handleUnknownResponse(response: Any, amqpMessage: AMQPMessage): Unit = {
