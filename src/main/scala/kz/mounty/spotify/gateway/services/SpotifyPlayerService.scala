@@ -48,71 +48,76 @@ class SpotifyPlayerService(implicit timeout: Timeout,
   with RestClient {
   override def receive: Receive = {
     case command: PlayerPlay =>
+      val senderRef = sender()
       makePutRequest[PlayerPlayGatewayResponseBody](
         uri = getUrl(command),
         headers = getAuthorizationHeaders(command.accessToken),
         body = if (command.entity.isDefined) Some(write(command.entity.get)) else None
       )
         .map { response =>
-          context.parent ! response
+          senderRef ! response
         } recover {
         case e: Throwable =>
-          context.parent ! e
+          senderRef ! e
       }
       context.stop(self)
 
     case command: PlayerPause =>
+      val senderRef = sender()
       makePutRequest[PlayerPauseGatewayResponseBody](
         uri = getUrl(command),
         headers = getAuthorizationHeaders(command.accessToken),
         body = None
       )
         .map { response =>
-          context.parent ! response
+          senderRef ! response
         } recover {
         case e: Throwable =>
-          context.parent ! e
+          senderRef ! e
       }
       context.stop(self)
 
     case command: PlayerNext =>
+      val senderRef = sender()
       makePostRequest[PlayerNextGatewayResponseBody](
         uri = getUrl(command),
         headers = getAuthorizationHeaders(command.accessToken),
         body = None
       )
         .map { response =>
-          context.parent ! response
+          senderRef ! response
         } recover {
         case e: Throwable =>
-          context.parent ! e
+          senderRef ! e
       }
       context.stop(self)
 
     case command: PlayerPrev =>
+      val senderRef = sender()
       makePostRequest[PlayerPrevGatewayResponseBody](
         uri = getUrl(command),
         headers = getAuthorizationHeaders(command.accessToken),
         body = None
       )
         .map { response =>
-          context.parent ! response
+          senderRef ! response
         } recover {
         case e: Throwable =>
-          context.parent ! e
+          senderRef ! e
       }
       context.stop(self)
 
     case command: PlayerGetCurrentlyPlaying =>
+      val senderRef = sender()
       makeGetRequest[GetCurrentlyPlayingTrackSpotifyResponse](
         uri = getUrl(command),
         headers = getAuthorizationHeaders(command.accessToken)
       )
         .map { response =>
-          context.parent ! response
+          senderRef ! response
         } recover {
         case e: Throwable =>
-          context.parent ! e
+          senderRef ! e
       }
       context.stop(self)
 

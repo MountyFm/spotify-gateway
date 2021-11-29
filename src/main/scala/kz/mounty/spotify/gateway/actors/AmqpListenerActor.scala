@@ -35,7 +35,7 @@ class AmqpListenerActor(redis: Redis)(implicit system: ActorSystem, ex: Executio
     with MountyEndpoint
     with SpotifyResponseConverter
     with Serializers {
-  implicit val timeout: Timeout = 5.seconds
+  implicit val timeout: Timeout = 120.seconds
 
   override def receive: Receive = {
     case message: String =>
