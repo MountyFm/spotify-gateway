@@ -241,14 +241,14 @@ class AmqpListenerActor(redis: Redis)(implicit system: ActorSystem, ex: Executio
     writeErrorLog(s"Received exception: $exceptionMessage", exception)
 
     val error = exception match {
-      case e: MountyException => e
+      case e: MountyException => e.getExceptionInfo
       case _ =>
         ServerErrorRequestException(
           ErrorCodes.INTERNAL_SERVER_ERROR(
             errorSeries
           ),
           exceptionMessage
-        )
+        ).getExceptionInfo
     }
 
     publisher ! amqpMessage.copy(entity = write(error), routingKey = getResponseRoutingKey(amqpMessage.routingKey), exchange = "X:mounty-spotify-gateway-out")
