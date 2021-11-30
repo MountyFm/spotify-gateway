@@ -51,7 +51,7 @@ class AmqpListenerActor(redis: Redis)(implicit system: ActorSystem, ex: Executio
                 accessToken = token
               )).map {
                 case response: GetCurrentUserPlaylistsSpotifyResponse =>
-                  handleSuccessfulResponse(convert(response), amqpMessage)
+                  handleSuccessfulResponse(convert(response, command.tokenKey), amqpMessage)
                 case e: Throwable =>
                   handleException(e, Some(e.getMessage), amqpMessage)
                 case any =>

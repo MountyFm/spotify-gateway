@@ -9,7 +9,7 @@ import kz.mounty.spotify.gateway.domain.response._
 import org.joda.time.DateTime
 
 trait SpotifyResponseConverter {
-  def convert(response: GetCurrentUserPlaylistsSpotifyResponse): GetCurrentUserRoomsGatewayResponseBody = {
+  def convert(response: GetCurrentUserPlaylistsSpotifyResponse, userId: String): GetCurrentUserRoomsGatewayResponseBody = {
     val rooms = response.items.map {
       spotifyPlaylistItem =>
         Room(
@@ -25,6 +25,7 @@ trait SpotifyResponseConverter {
         )
     }
     GetCurrentUserRoomsGatewayResponseBody(
+      userId = userId,
       rooms = rooms
     )
   }
