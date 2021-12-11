@@ -9,7 +9,7 @@ import kz.mounty.fm.amqp.messages.MountyMessages.{RoomCore, SpotifyGateway, User
 import kz.mounty.fm.domain.DomainEntity
 import kz.mounty.fm.domain.commands._
 import kz.mounty.fm.domain.requests._
-import kz.mounty.fm.exceptions.{ErrorCodes, MountyException, ServerErrorRequestException}
+import kz.mounty.fm.exceptions.{ErrorCodes, MountyException, ServerErrorRequestException, UnauthorizedErrorException}
 import kz.mounty.fm.serializers.Serializers
 import kz.mounty.spotify.gateway.domain.SpotifyUserProfile
 import kz.mounty.spotify.gateway.domain.response._
@@ -60,8 +60,8 @@ class AmqpListenerActor(redis: Redis)(implicit system: ActorSystem, ex: Executio
                 case e: Throwable =>
                   handleException(e, Some(e.getMessage), amqpMessage)
               }
-            case Failure(exception) =>
-              handleException(exception, Some("access key is missing"), amqpMessage)
+            case Failure(_) =>
+              handleException(UnauthorizedErrorException(ErrorCodes.ACCESS_TOKEN_NOT_FOUND(errorSeries)), Some("access key is missing"), amqpMessage)
           }
         case SpotifyGateway.GetPlaylistTracksGatewayRequest.routingKey =>
           val command = parse(amqpMessage.entity).extract[GetPlaylistTracksGatewayRequestBody]
@@ -82,7 +82,7 @@ class AmqpListenerActor(redis: Redis)(implicit system: ActorSystem, ex: Executio
                   handleException(e, Some(e.getMessage), amqpMessage)
               }
             case Failure(exception) =>
-              handleException(exception, Some("access key is missing"), amqpMessage)
+              handleException(UnauthorizedErrorException(ErrorCodes.ACCESS_TOKEN_NOT_FOUND(errorSeries)), Some("access key is missing"), amqpMessage)
           }
         case SpotifyGateway.PlayerPlayGatewayCommand.routingKey =>
           val command = parse(amqpMessage.entity).extract[PlayerPlayGatewayCommandBody]
@@ -111,7 +111,7 @@ class AmqpListenerActor(redis: Redis)(implicit system: ActorSystem, ex: Executio
                   handleException(e, Some(e.getMessage), amqpMessage)
               }
             case Failure(exception) =>
-              handleException(exception, Some("access key is missing"), amqpMessage)
+              handleException(UnauthorizedErrorException(ErrorCodes.ACCESS_TOKEN_NOT_FOUND(errorSeries)), Some("access key is missing"), amqpMessage)
           }
         case SpotifyGateway.PlayerPauseGatewayCommand.routingKey =>
           val command = parse(amqpMessage.entity).extract[PlayerPauseGatewayCommandBody]
@@ -132,7 +132,7 @@ class AmqpListenerActor(redis: Redis)(implicit system: ActorSystem, ex: Executio
                   handleException(e, Some(e.getMessage), amqpMessage)
               }
             case Failure(exception) =>
-              handleException(exception, Some("access key is missing"), amqpMessage)
+              handleException(UnauthorizedErrorException(ErrorCodes.ACCESS_TOKEN_NOT_FOUND(errorSeries)), Some("access key is missing"), amqpMessage)
           }
         case SpotifyGateway.PlayerNextGatewayCommand.routingKey =>
           val command = parse(amqpMessage.entity).extract[PlayerNextGatewayCommandBody]
@@ -153,7 +153,7 @@ class AmqpListenerActor(redis: Redis)(implicit system: ActorSystem, ex: Executio
                   handleException(e, Some(e.getMessage), amqpMessage)
               }
             case Failure(exception) =>
-              handleException(exception, Some("access key is missing"), amqpMessage)
+              handleException(UnauthorizedErrorException(ErrorCodes.ACCESS_TOKEN_NOT_FOUND(errorSeries)), Some("access key is missing"), amqpMessage)
           }
         case SpotifyGateway.PlayerPrevGatewayCommand.routingKey =>
           val command = parse(amqpMessage.entity).extract[PlayerPrevGatewayCommandBody]
@@ -174,7 +174,7 @@ class AmqpListenerActor(redis: Redis)(implicit system: ActorSystem, ex: Executio
                   handleException(e, Some(e.getMessage), amqpMessage)
               }
             case Failure(exception) =>
-              handleException(exception, Some("access key is missing"), amqpMessage)
+              handleException(UnauthorizedErrorException(ErrorCodes.ACCESS_TOKEN_NOT_FOUND(errorSeries)), Some("access key is missing"), amqpMessage)
           }
         case SpotifyGateway.GetCurrentlyPlayingTrackGatewayRequest.routingKey =>
           val command = parse(amqpMessage.entity).extract[GetCurrentlyPlayingTrackGatewayRequestBody]
@@ -194,7 +194,7 @@ class AmqpListenerActor(redis: Redis)(implicit system: ActorSystem, ex: Executio
                   handleException(e, Some(e.getMessage), amqpMessage)
               }
             case Failure(exception) =>
-              handleException(exception, Some("access key is missing"), amqpMessage)
+              handleException(UnauthorizedErrorException(ErrorCodes.ACCESS_TOKEN_NOT_FOUND(errorSeries)), Some("access key is missing"), amqpMessage)
           }
         case SpotifyGateway.GetUserProfileGatewayRequest.routingKey =>
           val command = parse(amqpMessage.entity).extract[GetUserProfileGatewayRequestBody]
@@ -214,7 +214,7 @@ class AmqpListenerActor(redis: Redis)(implicit system: ActorSystem, ex: Executio
                   handleException(e, Some(e.getMessage), amqpMessage)
               }
             case Failure(exception) =>
-              handleException(exception, Some("access key is missing"), amqpMessage)
+              handleException(UnauthorizedErrorException(ErrorCodes.ACCESS_TOKEN_NOT_FOUND(errorSeries)), Some("access key is missing"), amqpMessage)
           }
         case _ =>
           log.info("something else")
