@@ -5,7 +5,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.typesafe.config.Config
 import kz.mounty.fm.amqp.messages.AMQPMessage
-import kz.mounty.fm.amqp.messages.MountyMessages.{MountyApi, RoomCore, SpotifyGateway, UserProfileCore}
+import kz.mounty.fm.amqp.messages.MountyMessages.{RoomCore, SpotifyGateway, UserProfileCore}
 import kz.mounty.fm.domain.DomainEntity
 import kz.mounty.fm.domain.commands._
 import kz.mounty.fm.domain.requests._
