@@ -69,7 +69,8 @@ trait SpotifyResponseConverter {
         name = response.item.name,
         duration = response.item.durationMs,
         spotifyUri = response.item.uri
-      )
+      ),
+      progressMs = response.progressMs
     )
   }
 }

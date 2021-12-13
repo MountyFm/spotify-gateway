@@ -5,7 +5,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.typesafe.config.Config
 import kz.mounty.fm.amqp.messages.AMQPMessage
-import kz.mounty.fm.amqp.messages.MountyMessages.{RoomCore, SpotifyGateway, UserProfileCore}
+import kz.mounty.fm.amqp.messages.MountyMessages.{MountyApi, RoomCore, SpotifyGateway, UserProfileCore}
 import kz.mounty.fm.domain.DomainEntity
 import kz.mounty.fm.domain.commands._
 import kz.mounty.fm.domain.requests._
@@ -93,7 +93,8 @@ class AmqpListenerActor(redis: Redis)(implicit system: ActorSystem, ex: Executio
                   context_uri = command.contextUri.get,
                   offset = SpotifyPlayerService.Offset(
                     position = command.offset.get
-                  )))
+                  ),
+                  position_ms = command.positionMs.getOrElse(0)))
               } else None
               (context.actorOf(SpotifyPlayerService.props) ? SpotifyPlayerService.PlayerPlay(
                 deviceId = command.deviceId,
