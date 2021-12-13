@@ -67,10 +67,10 @@ trait SpotifyResponseConverter {
         imageUrl = response.item.album.images.head.url,
         artists = response.item.artists.map(_.name),
         name = response.item.name,
+        progressMs = Some(response.progressMs),
         duration = response.item.durationMs,
         spotifyUri = response.item.uri
-      ),
-      progressMs = response.progressMs
+      )
     )
   }
 }
